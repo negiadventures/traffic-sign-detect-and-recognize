@@ -8,16 +8,17 @@ from keras.preprocessing import image
 #                                                 batch_size = 32,
 #                                                 class_mode = 'categorical')
 
-dic = {0: 'no-right', 1: 'one-way', 2: 'do-not-enter', 3: 'block-ahead', 4: 'u-turn-permitted-ahead', 5: 'no-u-turn', 6: 'no-turn-on-red',
-       7: 'left-lane-must', 8: 'no-pedestrian', 9: 'no-trucks', 10: 'no-left', 11: 'bus-only', 12: 'exit-only', 13: 'road-construction-ahead',
-       14: 'pedestrian-crossing', 15: 'stop', 16: 'speed-limit-27', 17: 'speed-limit-18', 18: 'speed-limit-20', 19: 'only-two-way', 20: 'no-parking',
-       21: 'right-or-through', 22: 'only-right', 23: 'speed-limit-30', 24: 'hospital', 25: 'bicycle-route', 26: 'watch-for-motorcycles',
-       27: 'do-not-block', 28: 'one-way-right', 29: 'end-school-zone', 30: 'yield', 31: 'height-limit', 32: 'workers-ahead', 33: 'traffic-light',
-       34: 'road-work-ahead', 35: 'one-way-left', 36: 'parking', 37: 'school', 38: 'speed-limit-25', 39: 'bus-stop', 40: 'no-access',
-       41: 'speed-limit-40', 42: 'left-on-green-arrow-only', 43: 'slight-left', 44: 'bicycle-and-ped'}
-# road_signs = dict([(value, key) for key, value in training_set.class_indices.items()])
-road_signs = dict([(value, key) for key, value in dic.items()])
+classes = [('bicycle-and-ped', 0), ('bicycle-route', 1), ('block-ahead', 2), ('bus-only', 3), ('bus-stop', 4), ('do-not-block', 5),
+           ('do-not-enter', 6), ('end-school-zone', 7), ('exit-only', 8), ('height-limit', 9), ('hospital', 10), ('left-lane-must', 11),
+           ('left-on-green-arrow-only', 12), ('no-access', 13), ('no-left', 14), ('no-parking', 15), ('no-pedestrian', 16), ('no-right', 17),
+           ('no-trucks', 18), ('no-turn-on-red', 19), ('no-u-turn', 20), ('one-way', 21), ('one-way-left', 22), ('one-way-right', 23),
+           ('only-right', 24), ('only-two-way', 25), ('parking', 26), ('pedestrian-crossing', 27), ('right-or-through', 28),
+           ('road-construction-ahead', 29), ('road-work-ahead', 30), ('school', 31), ('slight-left', 32), ('speed-limit-18', 33),
+           ('speed-limit-20', 34), ('speed-limit-25', 35), ('speed-limit-27', 36), ('speed-limit-30', 37), ('speed-limit-40', 38), ('stop', 39),
+           ('traffic-light', 40), ('u-turn-permitted-ahead', 41), ('watch-for-motorcycles', 42), ('workers-ahead', 43), ('yield', 44)]
 
+# road_signs = dict([(value, key) for key, value in training_set.class_indices.items()])
+road_signs = dict([(value, key) for key, value in classes])
 
 # json_file = open('../roadsigns.json', 'r')
 # rs = json_file.read()

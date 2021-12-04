@@ -48,7 +48,6 @@ def class_predictor(loaded_model, img, coordinates):
             img = cv2.putText(img, road_signs[i], (p1[0], p1[1]), font,
                               fontScale, color, thickness, cv2.LINE_AA)
             img = cv2.rectangle(img, p1, p2, (0, 255, 0), 2, 1)
-            cv2.imwrite("frm.jpg", sign_in_img)
     return img
     # print("The object is: ", road_signs[i])
     # cv2.imshow("frm",img)

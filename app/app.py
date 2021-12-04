@@ -1,10 +1,10 @@
 import base64
+import glob
 import os
 
 import dash
 import dash_bootstrap_components as dbc
 import dash_dangerously_set_inner_html as dngr
-import glob
 import pandas as pd
 from dash import dcc, Output, Input, State
 from dash import html
@@ -215,37 +215,45 @@ SIDEBAR_STYLE = {
     'padding-left': '20px'
 }
 
-content_first_row = dbc.Row(
-    [
-        dbc.Col(
-            html.Div([html.Center(html.Img(id="image_org", width=480))],
-                     style={'width': '500px', 'position': 'relative', 'float': 'left',
-                            'margin-left': '10px', 'margin-bottom': '50px'}),
-        ),
-        dbc.Col(
-            html.Div([html.Center(html.Img(id="image_updated", width=480))],
-                     style={'width': '500px', 'position': 'relative', 'float': 'left',
-                            'margin-left': '10px', 'margin-bottom': '50px'}),
-        ),
-        dbc.Col(
-            html.Div([html.Center(html.Video(id="video_org", style={'width': '480px'}, controls=True))],
-                     style={'width': '500px', 'position': 'relative', 'float': 'left',
-                            'margin-left': '10px', 'margin-bottom': '50px'}),
-        ),
-        dbc.Col(
-            html.Div([html.Center(html.Video(id="video_updated", style={'width': '480px'}, controls=True))],
-                     style={'width': '500px', 'position': 'relative', 'float': 'left',
-                            'margin-left': '10px', 'margin-bottom': '50px'})),
-
-    ]
-)
-
-content = html.Div([
-    html.H2('Dashboard', style=TEXT_STYLE),
+content_image = html.Div([
     html.Hr(),
     dcc.Loading(
         id="loading",
-        children=[content_first_row]),
+        children=[dbc.Row(
+            [
+                dbc.Col(
+                    html.Div([html.Center(html.Img(id="image_org", width=480))],
+                             style={'width': '500px', 'position': 'relative', 'float': 'left',
+                                    'margin-left': '10px', 'margin-bottom': '50px'}),
+                ),
+                dbc.Col(
+                    html.Div([html.Center(html.Img(id="image_updated", width=480))],
+                             style={'width': '500px', 'position': 'relative', 'float': 'left',
+                                    'margin-left': '10px', 'margin-bottom': '50px'}),
+                ),
+            ]
+        )]),
+],
+    style=CONTENT_STYLE)
+
+content_video = html.Div([
+    html.Hr(),
+    dcc.Loading(
+        id="loading",
+        children=[dbc.Row(
+            [
+                dbc.Col(
+                    html.Div([html.Center(html.Video(id="video_org", style={'width': '480px'}, controls=True))],
+                             style={'width': '500px', 'position': 'relative', 'float': 'left',
+                                    'margin-left': '10px', 'margin-bottom': '50px'}),
+                ),
+                dbc.Col(
+                    html.Div([html.Center(html.Video(id="video_updated", style={'width': '480px'}, controls=True))],
+                             style={'width': '500px', 'position': 'relative', 'float': 'left',
+                                    'margin-left': '10px', 'margin-bottom': '50px'})),
+
+            ]
+        )]),
 ],
     style=CONTENT_STYLE)
 
@@ -279,16 +287,20 @@ def loading(list_of_contents, loading, list_of_names, list_of_dates):
 def update_output(list_of_contents, list_of_names, list_of_dates):
     # cleanup()
     if list_of_contents is not None and len(list_of_contents) > 0:
-        children = [sidebar, content]
-        return children
+        if list_of_contents.startswith('data:image'):
+            children = [sidebar, content_image]
+            return children
+        else:
+            children = [sidebar, content_video]
+            return children
+
     else:
         return [
             html.Div(
-                [html.H4('Dashboard', style=TEXT_STYLE),
-                 html.Br(),
-                 html.Br(),
-                 html.H6('Please upload the file above to view some stats.', style={'textAlign': 'center'})
-                 ],
+                [
+                    html.Br(),
+                    html.H6('Please upload the file above to view some stats.', style={'textAlign': 'center'})
+                ],
             )
 
         ]

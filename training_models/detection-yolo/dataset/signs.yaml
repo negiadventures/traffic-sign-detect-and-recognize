@@ -1,0 +1,9 @@
+train: /common/home/an721/Downloads/detection-yolo/dataset/images/train
+
+val: /common/home/an721/Downloads/detection-yolo/dataset/images/valid
+
+# number of classes
+nc: 1
+
+# class names
+names: ['signs']

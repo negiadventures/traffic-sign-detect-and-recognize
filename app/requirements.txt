@@ -1,2 +1,10 @@
 flask
+flask_caching
+dash
+dash_bootstrap_components
+dash_dangerously_set_inner_html
+waitress
+tensorflow
+numpy
+pandas
 pydot

@@ -1,11 +1,14 @@
 import base64
 import glob
+import hashlib
 import os
 
 import dash
 import dash_bootstrap_components as dbc
 import dash_dangerously_set_inner_html as dngr
+import numpy as np
 import pandas as pd
+from cv2 import cv2
 from dash import dcc, Output, Input, State
 from dash import html
 from flask import Flask, render_template
@@ -38,7 +41,7 @@ dash_header = """
 </div>
 <div id="navbar">
     <a class="$home" href="/">Home</a>
-    <a class="$analytics" href="/analytics">Analytics</a>
+    <a class="$analytics" href="/model">Models</a>
 </div>
 <div class="content">
     <div class="container">
@@ -70,6 +73,32 @@ function myFunction() {
 
 """
 
+CONTENT_STYLE = {
+    'position': 'relative',
+    'float': 'left',
+    'margin-left': '25px',
+    'margin-right': '3%',
+    'padding': '10px 10px',
+    'width': '70%',
+}
+
+TEXT_STYLE = {
+    'textAlign': 'center',
+    'color': '#191970'
+}
+SIDEBAR_STYLE = {
+    'position': 'relative',
+    'float': 'left',
+    'top': 0,
+    'left': 0,
+    'bottom': 0,
+    'width': '25%',
+    'padding': '20px 10px',
+    'background-color': '#f8f9fa',
+    'padding-top': '0px',
+    'padding-left': '20px'
+}
+
 
 @app.errorhandler(404)
 def page_not_found(e):
@@ -79,7 +108,7 @@ def page_not_found(e):
 TIMEOUT = 60
 dash_app_home = dash.Dash(__name__, server=app, url_base_pathname='/home/')
 dash_app_home.title = 'Home'
-dash_app_analytics = dash.Dash(__name__, server=app, url_base_pathname='/analytics/')
+dash_app_analytics = dash.Dash(__name__, server=app, url_base_pathname='/model/')
 dash_app_analytics.title = 'Analytics'
 
 cache_home = Cache(dash_app_home.server, config={
@@ -147,34 +176,45 @@ dash_app_analytics.layout = html.Div([
     # div for static header
     dngr.DangerouslySetInnerHTML(
         dash_header.replace('$home', 'inactive').replace('$analytics', 'active')),
-    html.Div([
-        dcc.Upload(
-            id='upload-data',
-            children=html.Div([
-                'Drag and Drop or ',
-                html.A('Select File')
-            ]),
-            style={
-                'width': '98%',
-                'height': '60px',
-                'lineHeight': '60px',
-                'borderWidth': '1px',
-                'borderStyle': 'dashed',
-                'borderRadius': '5px',
-                'textAlign': 'center',
-                'margin': '10px',
-                'background-color': '#f8f9fa'
-            },
-            # Allow multiple files to be uploaded
-            multiple=False
-        ),
-        html.Div(id='output-data-upload', children=[
+    html.Div(
+        children=[
             html.Div(
-                [html.H4('Please upload the file above to view some stats.', style={'textAlign': 'center'})
-                 ])
+                [
+                    html.H1('Models Summary', style=TEXT_STYLE),
 
-        ]),
-    ], style={'background-color': '#f8f9fa'}),
+                    html.H2('Model 1: Sign Detection (YOLO)'),
+                    html.Br(),
+                    html.Img(width=800, src='assets/results_yolo.png'),
+                    html.H4('Epochs vs Metrics'),
+                    html.Br(),
+                    html.Br(),
+                    html.Img(width=900, src='assets/yolo_val_batch2_pred.jpg'),
+                    html.H4('Sample Batch Prediction'),
+                    html.Br(),
+                    html.Br(),
+
+                    html.H2('Model 2: Sign Recognition (CNN)'),
+                    html.Br(),
+                    html.Img(width=700, src='assets/cnn_model summary.png'),
+                    html.H4('CNN Model Summary'),
+                    html.Br(),
+                    html.Br(),
+                    html.Img(width=800, src='assets/cnn-model.png'),
+                    html.H4('CNN Model'),
+                    html.Br(),
+                    html.Br(),
+                    html.Img(width=800, src='assets/results_cnn.png'),
+                    html.H4('Epochs vs Accuracy(left) & Epochs vs Loss(left)')
+
+                ]),
+        ], style={
+            'borderWidth': '1px',
+            'borderStyle': 'dashed',
+            'borderRadius': '5px',
+            'textAlign': 'center',
+            'margin': '10px',
+            'background-color': '#f8f9fa'
+        }),
     dngr.DangerouslySetInnerHTML(
         dash_footer)
 ])
@@ -189,32 +229,6 @@ def cleanup():
         os.remove(im)
 
 
-CONTENT_STYLE = {
-    'position': 'relative',
-    'float': 'left',
-    'margin-left': '25px',
-    'margin-right': '3%',
-    'padding': '10px 10px',
-    'width': '70%',
-}
-
-TEXT_STYLE = {
-    'textAlign': 'center',
-    'color': '#191970'
-}
-SIDEBAR_STYLE = {
-    'position': 'relative',
-    'float': 'left',
-    'top': 0,
-    'left': 0,
-    'bottom': 0,
-    'width': '20%',
-    'padding': '20px 10px',
-    'background-color': '#f8f9fa',
-    'padding-top': '0px',
-    'padding-left': '20px'
-}
-
 content_image = html.Div([
     html.Hr(),
     dcc.Loading(
@@ -222,13 +236,13 @@ content_image = html.Div([
         children=[dbc.Row(
             [
                 dbc.Col(
-                    html.Div([html.Center(html.Img(id="image_org", width=480))],
-                             style={'width': '500px', 'position': 'relative', 'float': 'left',
+                    html.Div([html.Center(html.Img(id="image_org", width=580))],
+                             style={'width': '600px', 'position': 'relative', 'float': 'left',
                                     'margin-left': '10px', 'margin-bottom': '50px'}),
                 ),
                 dbc.Col(
-                    html.Div([html.Center(html.Img(id="image_updated", width=480))],
-                             style={'width': '500px', 'position': 'relative', 'float': 'left',
+                    html.Div([html.Center(html.Img(id="image_updated", width=580))],
+                             style={'width': '600px', 'position': 'relative', 'float': 'left',
                                     'margin-left': '10px', 'margin-bottom': '50px'}),
                 ),
             ]
@@ -243,13 +257,13 @@ content_video = html.Div([
         children=[dbc.Row(
             [
                 dbc.Col(
-                    html.Div([html.Center(html.Video(id="video_org", style={'width': '480px'}, controls=True))],
-                             style={'width': '500px', 'position': 'relative', 'float': 'left',
+                    html.Div([html.Center(html.Video(id="video_org", style={'width': '580px'}, controls=True))],
+                             style={'width': '600px', 'position': 'relative', 'float': 'left',
                                     'margin-left': '10px', 'margin-bottom': '50px'}),
                 ),
                 dbc.Col(
-                    html.Div([html.Center(html.Video(id="video_updated", style={'width': '480px'}, controls=True))],
-                             style={'width': '500px', 'position': 'relative', 'float': 'left',
+                    html.Div([html.Center(html.Video(id="video_updated", style={'width': '580px'}, controls=True))],
+                             style={'width': '600px', 'position': 'relative', 'float': 'left',
                                     'margin-left': '10px', 'margin-bottom': '50px'})),
 
             ]
@@ -259,9 +273,8 @@ content_video = html.Div([
 
 sidebar = html.Div(
     [
-        html.H2('Summary', style=TEXT_STYLE),
-        html.Hr(),
-        html.Div(id='sidebar_data')
+        html.Div(id='sidebar_data'),
+        html.Div(id='sidebar_data_vid')
     ],
     style=SIDEBAR_STYLE,
 )
@@ -321,8 +334,81 @@ def view_org(content, loading):
         pass
 
 
+def get_summary(type):
+    df = pd.read_csv('yolov5/out/detections.csv')
+    img_array = None
+    with open('yolov5/out/detections.npy', 'rb') as f:
+        img_array = np.load(f, allow_pickle=True)
+    children = [html.H3('Detection Summary', style=TEXT_STYLE),
+                html.Hr(), ]
+    if type == 'img':
+        for i in range(len(img_array)):
+            img = img_array[i]
+            # img = cv2.cvtColor(img, cv2.COLOR_BAYER_BG2BGR)
+            _, buffer = cv2.imencode('.png', img)
+            children.extend(
+                [
+                    html.Div([
+                        html.Div(
+                            [html.Img(id="image_updated", width=40, src='data:image/png;base64,' + str(base64.b64encode(buffer).decode("utf-8")))],
+                            style={'width': '45px', 'position': 'relative', 'float': 'left',
+                                   'margin-left': '5px', 'margin-top': '15px'}),
+                        html.Div([html.B(html.H5('Detection Confidence(Model 1): ' + str(df['model_1_sign_confidence'].iloc[i])))],
+                                 style={'width': '250px', 'position': 'relative', 'float': 'left',
+                                        'margin-left': '15px', 'margin-top': '5px'}),
+                        html.Div([html.H5('Sign Recognized(Model 2): ' + str(df['model_2_detected_sign'].iloc[i]))],
+                                 style={'width': '250px', 'position': 'relative', 'float': 'left', 'margin-left': '15px'
+                                        })]
+                        , style={'position': 'relative', 'float': 'left'}
+                    )
+                ])
+        return children
+    else:
+        data = {}
+        for i in range(len(df)):
+            key = hashlib.md5((str(df['model_2_detected_sign'].iloc[i])).encode()).hexdigest()
+            if key in data:
+                data[key]['count'] += 1
+                if data[key]['model_1_sign_confidence'] < df['model_1_sign_confidence'].iloc[i]:
+                    data[key]['image'] = img_array[i]
+                    data[key]['model_1_sign_confidence'] = df['model_1_sign_confidence'].iloc[i]
+                    data[key]['model_2_detected_sign'] = str(df['model_2_detected_sign'].iloc[i])
+            else:
+                data[key] = {}
+                data[key]['image'] = img_array[i]
+                data[key]['model_1_sign_confidence'] = df['model_1_sign_confidence'].iloc[i]
+                data[key]['model_2_detected_sign'] = str(df['model_2_detected_sign'].iloc[i])
+                data[key]['count'] = 1
+        data = sorted(data.items(), key=lambda x: x[1]['count'], reverse=True)
+        for d in data:
+            img = d[1]['image']
+            # img = cv2.cvtColor(img, cv2.COLOR_BAYER_BG2BGR)
+            _, buffer = cv2.imencode('.png', img)
+            children.extend(
+                [
+                    html.Div([
+                        html.Div(
+                            [html.Img(id="image_updated", width=40, src='data:image/png;base64,' + str(base64.b64encode(buffer).decode("utf-8")))],
+                            style={'width': '45px', 'position': 'relative', 'float': 'left',
+                                   'margin-left': '5px', 'margin-top': '15px'}),
+                        html.Div([html.B(html.H5('Total Count: ' + str(d[1]['count'])))],
+                                 style={'width': '250px', 'position': 'relative', 'float': 'left',
+                                        'margin-left': '15px', 'margin-top': '5px'}),
+                        html.Div([html.B(html.H5('Max Confidence(Model 1): ' + str(d[1]['model_1_sign_confidence'])))],
+                                 style={'width': '250px', 'position': 'relative', 'float': 'left',
+                                        'margin-left': '15px', 'margin-top': '5px'}),
+                        html.Div([html.H5('Sign Recognized(Model 2): ' + d[1]['model_2_detected_sign'])],
+                                 style={'width': '250px', 'position': 'relative', 'float': 'left', 'margin-left': '15px'
+                                        })]
+                        , style={'position': 'relative', 'float': 'left'}
+                    )
+                ])
+        return children
+
+
 @dash_app_home.callback(
     Output('image_updated', 'src'),
+    Output('sidebar_data', 'children'),
     Input('upload-data', 'contents'),
     Input('loading', "value"))
 def view_updated(content, loading):
@@ -334,7 +420,8 @@ def view_updated(content, loading):
         detect.detect_object('temp/image.jpg', 'image')
         with open("yolov5/out/out_image.jpg", "rb") as img_file:
             my_string = base64.b64encode(img_file.read())
-        return 'data:image/png;base64,' + str(my_string.decode("utf-8"))
+        children = get_summary('img')
+        return 'data:image/png;base64,' + str(my_string.decode("utf-8")), children
     else:
         pass
 
@@ -356,6 +443,7 @@ def view_org_video(content, loading):
 
 @dash_app_home.callback(
     Output('video_updated', 'src'),
+    Output('sidebar_data_vid', 'children'),
     Input('upload-data', 'contents'),
     Input('loading', "value"), )
 def view_updated_video(content, loading):
@@ -363,7 +451,8 @@ def view_updated_video(content, loading):
         pass
     else:
         detect.detect_object("static/video/video.mov", 'video')
-        return 'static/video/out_video.mp4'
+        children = get_summary('vid')
+        return 'static/video/out_video.mp4', children
 
 
 @app.route('/')
@@ -372,7 +461,7 @@ def home():
     return dash_app_home.index()
 
 
-@app.route('/analytics')
+@app.route('/model')
 def analytics():
     return dash_app_analytics.index()
 

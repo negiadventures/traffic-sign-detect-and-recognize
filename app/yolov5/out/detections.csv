@@ -1,0 +1,4 @@
+,model_1_sign_confidence,model_2_detected_sign
+0,0.86,stop
+1,0.89,no-left
+2,0.91,no-parking

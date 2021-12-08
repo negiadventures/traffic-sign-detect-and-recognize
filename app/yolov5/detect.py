@@ -15,21 +15,14 @@ Usage:
 import argparse
 import os
 import sys
+import time
 from pathlib import Path
 
 import cv2
 import torch
 import torch.backends.cudnn as cudnn
-import time
-
-from yolov5.utils import cnn_model
-import tensorflow as tf
-from keras.preprocessing.image import ImageDataGenerator
-import json
-import cv2
-import numpy as np
 from keras.models import model_from_json
-from keras.preprocessing import image
+from yolov5.utils import cnn_model
 
 FILE = Path(__file__).resolve()
 ROOT = FILE.parents[0]  # YOLOv5 root directory
@@ -43,6 +36,8 @@ from utils.general import (LOGGER, check_file, check_img_size, check_imshow, che
                            increment_path, non_max_suppression, print_args, scale_coords, strip_optimizer, xyxy2xywh)
 from utils.plots import Annotator, colors, save_one_box
 from utils.torch_utils import select_device, time_sync
+import pandas as pd
+import numpy as np
 
 
 @torch.no_grad()
@@ -73,6 +68,8 @@ def run(weights=ROOT / 'yolov5s.pt',  # model.pt path(s)
         dnn=False,  # use OpenCV DNN for ONNX inference
         source_type='image',
         ):
+    df = pd.DataFrame(columns=['model_1_sign_confidence', 'model_2_detected_sign'])
+    img_arr = []
     pf = 0
     nf = 0
     ls = []
@@ -190,7 +187,11 @@ def run(weights=ROOT / 'yolov5s.pt',  # model.pt path(s)
                     p1, p2 = annotator.return_point()
                     ls.append([p1, p2])
                     if not (p1 is None or p2 is None):
-                        im0 = cnn_model.class_predictor(loaded_model, im0, [p1, p2])
+                        cropped = im0s.copy()[p1[1]:p2[1], p1[0]:p2[0]]
+                        im0, sign = cnn_model.class_predictor(loaded_model, im0, [p1, p2])
+                        df.loc[len(df)] = [str(f'{conf:.2f}'), sign]
+                        img_arr.append(cropped)
+
 
             # Print time (inference-only)
             LOGGER.info(f'{s}Done. ({t3 - t2:.3f}s)')
@@ -199,7 +200,7 @@ def run(weights=ROOT / 'yolov5s.pt',  # model.pt path(s)
             # im0 = annotator.result()
             # if view_img:
             nf = time.time()
-            fps = 1/(nf-pf)
+            fps = 1 / (nf - pf)
             pf = nf
             fps = str(int(fps))
 
@@ -221,12 +222,15 @@ def run(weights=ROOT / 'yolov5s.pt',  # model.pt path(s)
                             save_path += '.mp4'
                         vid_writer[i] = cv2.VideoWriter(save_path, cv2.VideoWriter_fourcc(*'mp4v'), fps, (w, h))
                     vid_writer[i].write(im0)
-            if source_type=='image':
+            if source_type == 'image':
                 cv2.imwrite('yolov5/out/out_image.jpg', im0)
             else:
                 # cv2.imshow(str(p), im0)
                 # cv2.waitKey(1)
                 result.write(im0)
+    df.to_csv('yolov5/out/detections.csv')
+    with open('yolov5/out/detections.npy', 'wb') as f:
+        np.save(f, np.array(img_arr))
     # Print results
     t = tuple(x / seen * 1E3 for x in dt)  # speeds per image
     LOGGER.info(f'Speed: %.1fms pre-process, %.1fms inference, %.1fms NMS per image at shape {(1, 3, *imgsz)}' % t)

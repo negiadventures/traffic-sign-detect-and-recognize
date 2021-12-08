@@ -42,13 +42,14 @@ def class_predictor(loaded_model, img, coordinates):
     fontScale = 1
     color = (255, 0, 0)
     thickness = 2
-
+    sign = ''
     for i, j in enumerate(result[0]):
         if (j == 1.0):
-            img = cv2.putText(img, road_signs[i], (p1[0], p1[1]), font,
+            sign = road_signs[i]
+            img = cv2.putText(img, sign, (p1[0], p1[1]), font,
                               fontScale, color, thickness, cv2.LINE_AA)
             img = cv2.rectangle(img, p1, p2, (0, 255, 0), 2, 1)
-    return img
+    return img, sign
     # print("The object is: ", road_signs[i])
     # cv2.imshow("frm",img)
     # cv2.waitKey(0)
